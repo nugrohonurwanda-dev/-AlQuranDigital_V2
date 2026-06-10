@@ -47,11 +47,21 @@ const BookmarkButton = ({ verse, isBookmarked, onToggleBookmark, colors }: Bookm
   if (!onToggleBookmark) return null;
   return (
     <TouchableOpacity
-      style={[styles.actionBtn, { backgroundColor: isBookmarked ? colors.primary : 'transparent', borderColor: isBookmarked ? colors.primary : colors.border }]}
+      style={[
+        styles.actionBtn,
+        {
+          backgroundColor: isBookmarked ? colors.primary : 'transparent',
+          borderColor:     isBookmarked ? colors.primary : colors.border,
+        },
+      ]}
       onPress={handlePress}
       accessibilityLabel={isBookmarked ? 'Hapus bookmark' : 'Tambah bookmark'}
     >
-      <Ionicons name={isBookmarked ? 'bookmark' : 'bookmark-outline'} size={16} color={isBookmarked ? '#fff' : colors.primary} />
+      <Ionicons
+        name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+        size={16}
+        color={isBookmarked ? '#fff' : colors.primary}
+      />
     </TouchableOpacity>
   );
 };
@@ -78,7 +88,7 @@ export default function VerseItem({
   const themeContext = useTheme();
   if (!fontContext || !themeContext) return null;
 
-  const { fontSize: contextFontSize, getArabicTextStyle } = fontContext;
+  const { fontSize: contextFontSize } = fontContext;
   const { colors } = theme ?? themeContext;
   const finalFontSize = propFontSize || contextFontSize || 28;
 
@@ -89,16 +99,8 @@ export default function VerseItem({
   );
 
   const verseNumber          = verse.verse_number ?? (index + 1);
-  const currentChapterNumber = chapterNumber ?? (verse as Verse & { chapter_number?: number }).chapter_number ?? 1;
-
-  const arabicStyle: TextStyle = {
-    ...getArabicTextStyle(finalFontSize),
-    color:          colors.arabicText,
-    fontSize:       finalFontSize,
-    textAlign:      'right',
-    lineHeight:     finalFontSize * 1.7,
-    letterSpacing:  0.8,
-  };
+  const currentChapterNumber = chapterNumber ??
+    (verse as Verse & { chapter_number?: number }).chapter_number ?? 1;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.cardBackground, borderColor: colors.borderLight }]}>
@@ -121,7 +123,12 @@ export default function VerseItem({
                 onPlaybackError={onAudioPlaybackError}
               />
             )}
-            <BookmarkButton verse={verse} isBookmarked={isBookmarked} onToggleBookmark={onToggleBookmark} colors={colors} />
+            <BookmarkButton
+              verse={verse}
+              isBookmarked={isBookmarked}
+              onToggleBookmark={onToggleBookmark}
+              colors={colors}
+            />
           </View>
         )}
       </View>
@@ -142,7 +149,9 @@ export default function VerseItem({
               {translation.text}
             </Text>
             {translationAuthor && (
-              <Text style={[styles.translationAuthor, { color: colors.textLight }]}>— {translationAuthor}</Text>
+              <Text style={[styles.translationAuthor, { color: colors.textLight }]}>
+                — {translationAuthor}
+              </Text>
             )}
           </View>
         )}
@@ -152,16 +161,54 @@ export default function VerseItem({
 }
 
 const styles = StyleSheet.create({
-  container:           { marginHorizontal: 12, marginVertical: 8, borderRadius: 12, padding: 16, borderWidth: 1, elevation: 2, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 3 },
-  header:              { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  numberBadge:         { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, minWidth: 40, alignItems: 'center', elevation: 1, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
-  numberText:          { fontSize: 14, fontWeight: '600' },
-  actions:             { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  actionBtn:           { borderRadius: 18, padding: 8, justifyContent: 'center', alignItems: 'center', minWidth: 36, minHeight: 36, borderWidth: 1, elevation: 1, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 2 },
-  content:             { flex: 1 },
-  arabicContainer:     { paddingVertical: 4, marginBottom: 12 },
-  translationContainer:{ paddingTop: 12, borderTopWidth: 1, marginTop: 8 },
-  translationText:     { textAlign: 'left', fontStyle: 'italic', marginBottom: 6 },
-  translationAuthor:   { textAlign: 'right', fontSize: 12, fontStyle: 'normal', marginTop: 4 },
-  errorText:           { textAlign: 'center', fontSize: 14, fontStyle: 'italic', padding: 16 },
+  container: {
+    marginHorizontal: 12,
+    marginVertical:   8,
+    borderRadius:     12,
+    padding:          16,
+    borderWidth:      1,
+    elevation:        2,
+    shadowOffset:     { width: 0, height: 1 },
+    shadowOpacity:    0.15,
+    shadowRadius:     3,
+  },
+  header: {
+    flexDirection:  'row',
+    justifyContent: 'space-between',
+    alignItems:     'center',
+    marginBottom:   12,
+  },
+  numberBadge: {
+    borderRadius:    20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth:        40,
+    alignItems:      'center',
+    elevation:       1,
+    shadowOffset:    { width: 0, height: 1 },
+    shadowOpacity:   0.2,
+    shadowRadius:    2,
+  },
+  numberText:           { fontSize: 14, fontWeight: '600' },
+  actions:              { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  actionBtn: {
+    borderRadius:  18,
+    padding:       8,
+    justifyContent: 'center',
+    alignItems:    'center',
+    minWidth:      36,
+    minHeight:     36,
+    borderWidth:   1,
+    elevation:     1,
+    shadowOffset:  { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius:  2,
+  },
+  content:              { flex: 1 },
+  // letterSpacing dihapus dari arabicContainer — sudah dihandle di TajweedNativeText
+  arabicContainer:      { paddingVertical: 4, marginBottom: 12 },
+  translationContainer: { paddingTop: 12, borderTopWidth: 1, marginTop: 8 },
+  translationText:      { textAlign: 'left', fontStyle: 'italic', marginBottom: 6 },
+  translationAuthor:    { textAlign: 'right', fontSize: 12, fontStyle: 'normal', marginTop: 4 },
+  errorText:            { textAlign: 'center', fontSize: 14, fontStyle: 'italic', padding: 16 },
 });

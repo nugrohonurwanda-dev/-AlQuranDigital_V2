@@ -18,12 +18,15 @@ export interface AudioContextType {
   isLoading:             boolean;
   currentVerse:          CurrentVerse | null;
   hasError:              boolean;
+  currentTime:           number;
+  duration:              number;
   getAudioUrl:           (chapter: number, verse: number) => string;
   getFullSurahAudioUrl:  (chapter: number) => string;
   getCurrentReciterName: () => string;
   getAllReciters:         () => Record<string, string>;
   updateReciter:         (id: string) => boolean;
   updateAudioQuality:    (quality: string) => boolean;
+  seekTo:                (seconds: number) => void;
   playVerseAudio: (
     chapter:  number,
     verse:    number,
@@ -63,6 +66,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [availableReciters, setAvailableReciters] = useState<Record<string, string>>(EQURAN_RECITERS);
   const [currentVerse,      setCurrentVerse]      = useState<CurrentVerse | null>(null);
   const [hasError,          setHasError]          = useState(false);
+  const [currentTime,       setCurrentTime]       = useState(0);
+  const [duration,          setDuration]          = useState(0);
 
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
@@ -71,30 +76,60 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const isLoading = status.isBuffering ?? false;
 
   // ─── Refs ─────────────────────────────────────────────────────────────────────
-  const onEndRef             = useRef<(() => void) | undefined>(undefined);
-  const onErrorRef           = useRef<((e: Error) => void) | undefined>(undefined);
-  const didFinishHandled     = useRef(false);
-  const pendingPlay          = useRef(false);   // ← tunggu loaded baru play
-  const pendingPlayTimeout   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onEndRef           = useRef<(() => void) | undefined>(undefined);
+  const onErrorRef         = useRef<((e: Error) => void) | undefined>(undefined);
+  const didFinishHandled   = useRef(false);
+  const progressInterval   = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── Auto-play saat audio sudah siap di-buffer ───────────────────────────────
-  // Ini fix utama: replace() butuh waktu load dari network
-  // baru setelah isLoaded === true, play() dipanggil
+  // ─── Fix Bug 4: Auto-play saat audio loaded ──────────────────────────────────
+  // Pakai status.isLoaded + belum playing sebagai sinyal untuk play,
+  // tanpa bergantung pada pendingPlay ref yang bisa miss update.
+  const wasLoadedRef = useRef(false);
   useEffect(() => {
-    if (pendingPlay.current && status.isLoaded && !status.isBuffering) {
-      pendingPlay.current = false;
-      if (pendingPlayTimeout.current) clearTimeout(pendingPlayTimeout.current);
+    const justLoaded = status.isLoaded && !wasLoadedRef.current;
+    wasLoadedRef.current = status.isLoaded ?? false;
+
+    if (justLoaded && !status.isBuffering && !status.playing && currentVerse) {
       player.volume = 1.0;
       player.muted  = false;
       player.play();
     }
-  }, [status.isLoaded, status.isBuffering]);
+  }, [status.isLoaded, status.isBuffering, status.playing]);
+
+  // ─── Fix Bug 3: Polling progress ─────────────────────────────────────────────
+  // expo-audio tidak push currentTime/duration ke status secara otomatis,
+  // jadi kita polling setiap 500ms saat sedang playing.
+  useEffect(() => {
+    if (isPlaying) {
+      progressInterval.current = setInterval(() => {
+        try {
+          const t = (player as any).currentTime ?? 0;
+          const d = (player as any).duration    ?? 0;
+          setCurrentTime(t);
+          if (d > 0) setDuration(d);
+        } catch { /* noop */ }
+      }, 500);
+    } else {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    }
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    };
+  }, [isPlaying, player]);
 
   // ─── Deteksi audio selesai ───────────────────────────────────────────────────
   useEffect(() => {
     if (status.didJustFinish && !didFinishHandled.current) {
       didFinishHandled.current = true;
       setCurrentVerse(null);
+      setCurrentTime(0);
+      setDuration(0);
       setTimeout(() => {
         onEndRef.current?.();
         didFinishHandled.current = false;
@@ -130,7 +165,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         AsyncStorage.getItem('equranReciterId'),
         AsyncStorage.getItem('audioQuality'),
       ]);
-      if (r && EQURAN_RECITERS[r])                     setSelectedReciter(r);
+      if (r && EQURAN_RECITERS[r])               setSelectedReciter(r);
       if (q && ['standard', 'high'].includes(q)) setAudioQuality(q);
     } finally {
       setIsInitialized(true);
@@ -168,17 +203,25 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [availableReciters, selectedReciter],
   );
 
-  const getAllReciters    = useCallback(() => availableReciters, [availableReciters]);
-  const updateReciter    = useCallback((id: string) => { if (!availableReciters[id]) return false; setSelectedReciter(id); return true; }, [availableReciters]);
+  const getAllReciters      = useCallback(() => availableReciters, [availableReciters]);
+  const updateReciter      = useCallback((id: string) => { if (!availableReciters[id]) return false; setSelectedReciter(id); return true; }, [availableReciters]);
   const updateAudioQuality = useCallback((q: string) => { if (!['standard', 'high'].includes(q)) return false; setAudioQuality(q); return true; }, []);
+
+  const seekTo = useCallback((seconds: number) => {
+    try {
+      player.seekTo(seconds);
+      setCurrentTime(seconds);
+    } catch { /* noop */ }
+  }, [player]);
 
   // ─── Playback ────────────────────────────────────────────────────────────────
   const stopAudio = useCallback(async () => {
-    pendingPlay.current = false;
-    if (pendingPlayTimeout.current) clearTimeout(pendingPlayTimeout.current);
+    wasLoadedRef.current     = false;
     didFinishHandled.current = true;
     try { player.pause(); player.seekTo(0); } catch { /* noop */ }
     setCurrentVerse(null);
+    setCurrentTime(0);
+    setDuration(0);
   }, [player]);
 
   const playVerseAudio = useCallback(async (
@@ -205,26 +248,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Hentikan yang sedang main
       if (isPlaying) player.pause();
 
-      // Reset pending
-      pendingPlay.current = false;
-      if (pendingPlayTimeout.current) clearTimeout(pendingPlayTimeout.current);
+      // Reset progress dan loaded tracker
+      setCurrentTime(0);
+      setDuration(0);
+      wasLoadedRef.current = false;
 
       const url = getAudioUrl(chapterNumber, verseNumber);
       setCurrentVerse({ chapterNumber, verseNumber });
 
-      // Load audio — play akan dipanggil otomatis via useEffect saat isLoaded
+      // replace() akan trigger status.isLoaded → useEffect di atas yang auto-play
       player.replace({ uri: url });
-      pendingPlay.current = true;
-
-      // Fallback: kalau 8 detik belum loaded, coba play paksa
-      pendingPlayTimeout.current = setTimeout(() => {
-        if (pendingPlay.current) {
-          pendingPlay.current = false;
-          player.volume = 1.0;
-          player.muted  = false;
-          player.play();
-        }
-      }, 8000);
 
       onPlaybackStart?.();
     } catch (error) {
@@ -250,9 +283,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <AudioContext.Provider value={{
       selectedReciter, audioQuality, isInitialized, availableReciters,
       isPlaying, isLoading, currentVerse, hasError,
+      currentTime, duration,
       getAudioUrl, getFullSurahAudioUrl,
       getCurrentReciterName, getAllReciters,
       updateReciter, updateAudioQuality,
+      seekTo,
       playVerseAudio, stopAudio, pauseAudio, resumeAudio,
       isVerseAudioPlaying, isVerseAudioLoading,
       setSelectedReciter: updateReciter,

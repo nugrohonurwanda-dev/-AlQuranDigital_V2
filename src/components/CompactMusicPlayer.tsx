@@ -30,18 +30,19 @@ const formatTime = (seconds: number): string => {
 };
 
 export default function CompactMusicPlayer({ chapterData }: Props) {
-  const { colors }              = useTheme();
-  const { getArabicTextStyle }  = useFonts();
+  const { colors }             = useTheme();
+  const { getArabicTextStyle } = useFonts();
   const {
     isPlaying, currentVerse, isLoading, hasError,
+    currentTime, duration, seekTo,
     playVerseAudio, stopAudio, pauseAudio, resumeAudio,
     getCurrentReciterName,
   } = useAudio();
 
-  const [isExpanded,    setIsExpanded]    = useState(false);
-  const [isVisible,     setIsVisible]     = useState(false);
-  const [currentTime,   setCurrentTime]   = useState(0);
-  const [duration,      setDuration]      = useState(0);
+  const [isExpanded,     setIsExpanded]     = useState(false);
+  const [isVisible,      setIsVisible]      = useState(false);
+  const [isSeeking,      setIsSeeking]      = useState(false);
+  const [seekValue,      setSeekValue]      = useState(0);
   const [currentChapter, setCurrentChapter] = useState<ChapterData | null>(null);
 
   const slideAnim = useRef(new Animated.Value(100)).current;
@@ -79,6 +80,20 @@ export default function CompactMusicPlayer({ chapterData }: Props) {
     await playVerseAudio(currentVerse.chapterNumber, currentVerse.verseNumber - 1).catch(() => {});
   };
 
+  const handleSeekStart = () => {
+    setIsSeeking(true);
+    setSeekValue(currentTime);
+  };
+
+  const handleSeekChange = (v: number) => {
+    setSeekValue(v);
+  };
+
+  const handleSeekComplete = (v: number) => {
+    setIsSeeking(false);
+    seekTo(v);
+  };
+
   const getCurrentInfo = () => {
     if (!currentVerse || !currentChapter) return { title: 'Tidak ada audio', subtitle: 'Pilih ayat untuk memutar', arabicText: '' };
     const verseData = currentChapter.verses?.find(v => v.verse_number === currentVerse.verseNumber);
@@ -89,9 +104,13 @@ export default function CompactMusicPlayer({ chapterData }: Props) {
     };
   };
 
-  const info = getCurrentInfo();
+  const info    = getCurrentInfo();
   const canPrev = !!currentVerse && currentVerse.verseNumber > 1;
   const canNext = !!currentVerse && !!currentChapter?.verses && currentVerse.verseNumber < (currentChapter.verses.length);
+
+  // Nilai yang ditampilkan di slider — pakai seekValue saat user sedang drag
+  const displayTime     = isSeeking ? seekValue : currentTime;
+  const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   if (!isVisible) return null;
 
@@ -124,7 +143,7 @@ export default function CompactMusicPlayer({ chapterData }: Props) {
 
         <View testID="progress-container" style={styles.progressContainer}>
           <View testID="progress-bar" style={[styles.progressBar, { backgroundColor: colors.border }]}>
-            <View testID="progress-fill" style={[styles.progressFill, { backgroundColor: colors.primary, width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%' }]} />
+            <View testID="progress-fill" style={[styles.progressFill, { backgroundColor: colors.primary, width: `${progressPercent}%` }]} />
           </View>
         </View>
       </Animated.View>
@@ -159,14 +178,18 @@ export default function CompactMusicPlayer({ chapterData }: Props) {
               <Slider
                 testID="expanded-slider"
                 style={styles.slider}
-                minimumValue={0} maximumValue={duration || 1} value={currentTime}
-                onValueChange={(v) => setCurrentTime(v)}
+                minimumValue={0}
+                maximumValue={duration > 0 ? duration : 1}
+                value={displayTime}
+                onSlidingStart={handleSeekStart}
+                onValueChange={handleSeekChange}
+                onSlidingComplete={handleSeekComplete}
                 minimumTrackTintColor={colors.primary}
                 maximumTrackTintColor={colors.border}
-                disabled={!isPlaying || isLoading}
+                disabled={duration === 0 || isLoading}
               />
               <View style={styles.timeRow}>
-                <Text testID="current-time" style={[styles.timeText, { color: colors.textSecondary }]}>{formatTime(currentTime)}</Text>
+                <Text testID="current-time" style={[styles.timeText, { color: colors.textSecondary }]}>{formatTime(displayTime)}</Text>
                 <Text testID="duration-time" style={[styles.timeText, { color: colors.textSecondary }]}>{formatTime(duration)}</Text>
               </View>
             </View>
@@ -190,32 +213,33 @@ export default function CompactMusicPlayer({ chapterData }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container:       { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: StyleSheet.hairlineWidth, elevation: 8, shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4, zIndex: 1000 },
-  playerContent:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  infoContainer:   { flex: 1, marginRight: 12 },
-  title:           { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  subtitle:        { fontSize: 12 },
-  controls:        { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  smallBtn:        { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  playBtn:         { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  container:         { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: StyleSheet.hairlineWidth, elevation: 8, shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4, zIndex: 1000 },
+  playerContent:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  infoContainer:     { flex: 1, marginRight: 12 },
+  title:             { fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  subtitle:          { fontSize: 12 },
+  controls:          { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  smallBtn:          { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  playBtn:           { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   progressContainer: { paddingHorizontal: 16, paddingBottom: 8 },
-  progressBar:     { height: 2, borderRadius: 1, overflow: 'hidden' },
-  progressFill:    { height: '100%', borderRadius: 1 },
+  progressBar:       { height: 2, borderRadius: 1, overflow: 'hidden' },
+  progressFill:      { height: '100%', borderRadius: 1 },
   expandedContainer: { flex: 1 },
-  expandedHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, paddingTop: 48, borderBottomWidth: StyleSheet.hairlineWidth },
-  headerBtn:       { padding: 4 },
-  expandedTitle:   { fontSize: 16, fontWeight: '600' },
-  expandedContent: { flex: 1, paddingHorizontal: 24, paddingTop: 32, justifyContent: 'space-between' },
-  arabicBox:       { padding: 24, borderRadius: 16, borderWidth: 1, marginBottom: 32, minHeight: 120, justifyContent: 'center' },
-  expandedInfo:    { alignItems: 'center', marginBottom: 40 },
+  expandedHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, paddingTop: 48, borderBottomWidth: StyleSheet.hairlineWidth },
+  headerBtn:         { padding: 4 },
+  expandedTitle:     { fontSize: 16, fontWeight: '600' },
+  expandedContent:   { flex: 1, paddingHorizontal: 24, paddingTop: 32, justifyContent: 'space-between' },
+  arabicBox:         { padding: 24, borderRadius: 16, borderWidth: 1, marginBottom: 32, minHeight: 120, justifyContent: 'center' },
+  expandedInfo:      { alignItems: 'center', marginBottom: 40 },
   expandedSongTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
-  expandedArtist:  { fontSize: 16, textAlign: 'center', marginBottom: 4 },
-  errorText:       { fontSize: 12, textAlign: 'center', marginTop: 4, color: '#ff4444' },
-  progressExpanded:{ marginBottom: 40 },
-  slider:          { width: '100%', height: 40 },
-  timeRow:         { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  timeText:        { fontSize: 12, fontWeight: '500' },
-  expandedControls:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 32, marginBottom: 48 },
-  expandedCtrlBtn: { width: 56, height: 56, justifyContent: 'center', alignItems: 'center' },
-  expandedPlayBtn: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
+  expandedArtist:    { fontSize: 16, textAlign: 'center', marginBottom: 4 },
+  errorText:         { fontSize: 12, textAlign: 'center', marginTop: 4, color: '#ff4444' },
+  progressExpanded:  { marginBottom: 40 },
+  slider:            { width: '100%', height: 40 },
+  timeRow:           { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  timeText:          { fontSize: 12, fontWeight: '500' },
+  expandedControls:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 32, marginBottom: 48 },
+  expandedCtrlBtn:   { width: 56, height: 56, justifyContent: 'center', alignItems: 'center' },
+  expandedPlayBtn:   { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
 });
+
