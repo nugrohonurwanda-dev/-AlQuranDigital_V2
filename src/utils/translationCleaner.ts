@@ -1,0 +1,45 @@
+// utils/translationCleaner.ts
+
+export const cleanTranslationText = (text: string): string => {
+  if (!text || typeof text !== 'string') return '';
+
+  return text
+    .replace(/<[^>]*>/g, '')
+    .replace(/\[\d+\]/g, '')
+    .replace(/\(\d+\)/g, '')
+    .replace(/\b\d+\b(?=\s|$)/g, '')
+    .replace(/¹|²|³|⁴|⁵|⁶|⁷|⁸|⁹|⁰/g, '')
+    .replace(/[†‡§¶#*]/g, '')
+    .replace(/\{\d+\}/g, '')
+    .replace(/<\d+>/g, '')
+    .replace(/-\d+\b/g, '')
+    .replace(/_\d+\b/g, '')
+    .replace(/\.\d+\b/g, '')
+    .replace(/:\d+\b/g, '')
+    .replace(/;\d+\b/g, '')
+    .replace(/,\s*\d+(?=\s|$)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rdquo;/g, '"')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    .replace(/&hellip;/g, '...')
+    .replace(/[\u2070-\u209F]/g, '')
+    .replace(/[\u00B9\u00B2\u00B3]/g, '')
+    .replace(/[⁺⁻⁼⁽⁾]/g, '')
+    .replace(/[₊₋₌₍₎]/g, '')
+    .replace(/[.,;:!?]{2,}/g, match => match[0])
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s+/g, ' ')
+    .replace(/^[.,;:!?\s]+|[.,;:!?\s]+$/g, '')
+    .trim();
+};
