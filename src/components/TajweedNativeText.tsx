@@ -15,55 +15,89 @@ interface Props {
 }
 
 // ─── Parse warna tajweed per-kata dari HTML tajweed ───────────────────────────
-// Strategi: ekstrak pasangan (kata → warna) dari text_uthmani_tajweed,
-// lalu terapkan ke kata-kata di text_uthmani yang bersih.
-// Dengan begitu rendering pakai teks bersih (huruf menyambung),
-// tapi masih dapat info warna dari HTML tajweed.
+// Strategi: parse tajweedHtml karakter per karakter untuk membangun
+// Map<wordIndex, color>. Word index naik setiap kali ada spasi di luar tag.
+// Lalu pasangkan index itu ke kata-kata di cleanText (text_uthmani bersih).
+// Ini menghindari masalah lama: "fragment key ≠ whole word".
 
 interface WordColor {
   word: string;
   color: string | null;
 }
 
-function buildWordColorMap(tajweedHtml: string): Map<string, string> {
-  const map = new Map<string, string>();
+// Tanda baca Quran (pause mark: ۗ ۖ dsb) yang muncul sebagai token tersendiri
+// di cleanText tapi tidak dihitung sebagai kata di tajweedHtml
+const PAUSE_MARK_RE = /^[\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0600-\u0605\uFDFD\u0615]+$/;
+
+function buildWordColorMapByIndex(tajweedHtml: string): Map<number, string> {
+  const map = new Map<number, string>();
   if (!tajweedHtml) return map;
 
-  // Ekstrak semua segment bertag: <tag class="...">teks</tag>
-  const tagRegex = /<\w+(?:\s+[^>]*?)?>([^<]*)<\/\w+>/gi;
-  let match: RegExpExecArray | null;
+  // Buang <span class=end>…</span> (nomor ayat) agar tidak ikut dihitung
+  const html = tajweedHtml.replace(/<span[^>]*>[\s\S]*?<\/span>/gi, '').trim();
 
-  while ((match = tagRegex.exec(tajweedHtml)) !== null) {
-    const [fullMatch, content] = match;
-    const cleanContent = content.replace(/\s+/g, '').trim();
-    if (!cleanContent) continue;
+  let wordIdx = 0;
+  let inTag = false;
+  let tagBuffer = '';
+  let currentColor: string | null = null;
+  let prevWasSpace = true;
 
-    // Ambil class attribute
-    const classMatch = fullMatch.match(/class\s*=\s*["']?([^"'\s>]+)["']?/i);
-    if (!classMatch) continue;
+  for (let i = 0; i < html.length; i++) {
+    const ch = html[i];
 
-    const tajweedStyle = getTajweedColor(classMatch[1]);
-    if (tajweedStyle?.color) {
-      map.set(cleanContent, tajweedStyle.color);
+    if (ch === '<') {
+      inTag = true;
+      tagBuffer = '<';
+    } else if (inTag) {
+      tagBuffer += ch;
+      if (ch === '>') {
+        inTag = false;
+        if (tagBuffer.startsWith('</')) {
+          currentColor = null;
+        } else {
+          const cm = tagBuffer.match(/class\s*=\s*["']?([^"'\s>]+)["']?/i);
+          if (cm) {
+            const style = getTajweedColor(cm[1]);
+            currentColor = style?.color ?? null;
+          } else {
+            currentColor = null;
+          }
+        }
+        tagBuffer = '';
+      }
+    } else {
+      // Karakter konten (di luar tag)
+      const isSpace = ch === ' ' || ch === '\u00a0';
+      if (isSpace) {
+        if (!prevWasSpace) wordIdx++;
+        prevWasSpace = true;
+      } else {
+        prevWasSpace = false;
+        // Simpan warna pertama yang ditemukan untuk kata ini
+        if (currentColor && !map.has(wordIdx)) {
+          map.set(wordIdx, currentColor);
+        }
+      }
     }
   }
 
   return map;
 }
 
-// Pecah text_uthmani bersih jadi kata-kata, dengan warna dari map
-function buildColoredWords(cleanText: string, colorMap: Map<string, string>): WordColor[] {
+// Pecah cleanText jadi kata-kata dan pasangkan dengan warna dari index map.
+// Pause mark di-skip dari penomoran agar index selaras dengan tajweedHtml.
+function buildColoredWords(cleanText: string, colorMap: Map<number, string>): WordColor[] {
   if (!cleanText) return [];
 
-  // Pecah per spasi, pertahankan spasi sebagai separator
-  const words = cleanText.split(/(\s+)/);
+  const parts = cleanText.split(/([\s]+)/);
+  let wordIdx = 0;
 
-  return words.map(word => {
-    if (!word.trim()) return { word, color: null }; // spasi
-    // Cari warna — coba exact match dulu, lalu strip harakat untuk fuzzy match
-    const stripped = word.replace(/[\u064B-\u065F\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/g, '');
-    const color = colorMap.get(word) ?? colorMap.get(stripped) ?? null;
-    return { word, color };
+  return parts.map(part => {
+    if (!part || /^\s+$/.test(part)) return { word: part, color: null };
+    if (PAUSE_MARK_RE.test(part)) return { word: part, color: null };
+    const color = colorMap.get(wordIdx) ?? null;
+    wordIdx++;
+    return { word: part, color };
   });
 }
 
@@ -106,9 +140,9 @@ const TajweedNativeText = React.memo(({
     ...(Platform.OS === 'android' && { includeFontPadding: false }),
   }), [arabicTextStyle, finalFontSize, colors.text]);
 
-  // Map kata → warna dari HTML tajweed
+  // Map wordIndex → warna dari HTML tajweed
   const colorMap = useMemo(() =>
-    enableTajweedColors ? buildWordColorMap(tajweedHtml) : new Map<string, string>(),
+    enableTajweedColors ? buildWordColorMapByIndex(tajweedHtml) : new Map<number, string>(),
   [tajweedHtml, enableTajweedColors]);
 
   // Daftar kata dengan warnanya

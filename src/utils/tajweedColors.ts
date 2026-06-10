@@ -4,11 +4,11 @@ export type TajweedColorKey =
   | 'merah' | 'magenta' | 'cyan' | 'hijau' | 'biru' | 'abu_abu' | 'default';
 
 export const BaseTajweedColors: Record<TajweedColorKey, string> = {
-  merah:   '#D32F2F',
+  merah: '#D32F2F',
   magenta: '#9C27B0',
-  cyan:    '#00BCD4',
-  hijau:   '#4CAF50',
-  biru:    '#2196F3',
+  cyan: '#00BCD4',
+  hijau: '#4CAF50',
+  biru: '#2196F3',
   abu_abu: '#757575',
   default: '#212121',
 };
@@ -20,43 +20,43 @@ interface TajweedPatternItem {
 
 const TajweedPatterns: Record<string, TajweedPatternItem> = {
   // 🔴 MERAH
-  idgham_bilaghunnah:  { color: BaseTajweedColors.merah,   patterns: ['idgam-bilaghunah', 'idgam_bilaghunnah', 'idgham_bilaghunnah', 'idgam'] },
-  idgham_mutajanisain: { color: BaseTajweedColors.merah,   patterns: ['idgham_mutajanisain', 'mutajanisain'] },
-  idgham_mutaqaribain: { color: BaseTajweedColors.merah,   patterns: ['idgham_mutaqaribain', 'mutaqaribain'] },
-  waqaf_lazim:         { color: BaseTajweedColors.merah,   patterns: ['waqaf_lazim', 'waqf_lazim', 'waqaf-lazim'] },
-  al_waqfu_aula:       { color: BaseTajweedColors.merah,   patterns: ['al_waqfu_aula', 'waqfu_aula', 'waqaf_aula'] },
-  lam_syamsiyah:       { color: BaseTajweedColors.merah,   patterns: ['laam_shamsiyah', 'lam_syamsiyah'] },
+  idgham_bilaghunnah: { color: BaseTajweedColors.merah, patterns: ['idgam-bilaghunah', 'idgam_bilaghunnah', 'idgham_bilaghunnah', 'idgam', 'idgham_wo_ghunnah'] },
+  idgham_mutajanisain: { color: BaseTajweedColors.merah, patterns: ['idgham_mutajanisain', 'mutajanisain'] },
+  idgham_mutaqaribain: { color: BaseTajweedColors.merah, patterns: ['idgham_mutaqaribain', 'mutaqaribain'] },
+  waqaf_lazim: { color: BaseTajweedColors.merah, patterns: ['waqaf_lazim', 'waqf_lazim', 'waqaf-lazim'] },
+  al_waqfu_aula: { color: BaseTajweedColors.merah, patterns: ['al_waqfu_aula', 'waqfu_aula', 'waqaf_aula'] },
+  lam_syamsiyah: { color: BaseTajweedColors.merah, patterns: ['laam_shamsiyah', 'lam_syamsiyah'] },
 
   // 🟣 MAGENTA
-  idgham_bighunnah: { color: BaseTajweedColors.magenta, patterns: ['idgam_bighunah', 'idgham_bighunnah', 'idgam-bighunnah'] },
-  idgham_mimi:      { color: BaseTajweedColors.magenta, patterns: ['idgham_mimi', 'mimi'] },
-  ghunnah:          { color: BaseTajweedColors.magenta, patterns: ['ghunnah', 'dengung'] },
-  mad_lazim:        { color: BaseTajweedColors.magenta, patterns: ['mad_lazim', 'madda_necessary', 'mad-lazim'] },
+  idgham_bighunnah: { color: BaseTajweedColors.magenta, patterns: ['idgam_bighunah', 'idgham_bighunnah', 'idgam-bighunnah', 'idgham_ghunnah', 'idgham_shafawi'] },
+  idgham_mimi: { color: BaseTajweedColors.magenta, patterns: ['idgham_mimi', 'mimi'] },
+  ghunnah: { color: BaseTajweedColors.magenta, patterns: ['ghunnah', 'dengung'] },
+  mad_lazim: { color: BaseTajweedColors.magenta, patterns: ['mad_lazim', 'madda_necessary', 'mad-lazim'] },
 
   // 🔵 CYAN
-  iqlab:               { color: BaseTajweedColors.cyan, patterns: ['iqlab'] },
-  mad_wajib_muttashil: { color: BaseTajweedColors.cyan, patterns: ['mad_wajib_muttashil', 'mad_muttashil', 'mad-wajib-muttashil'] },
+  iqlab: { color: BaseTajweedColors.cyan, patterns: ['iqlab'] },
+  mad_wajib_muttashil: { color: BaseTajweedColors.cyan, patterns: ['mad_wajib_muttashil', 'mad_muttashil', 'mad-wajib-muttashil', 'madda_obligatory'] },
 
   // 🟢 HIJAU
-  ikhfa:              { color: BaseTajweedColors.hijau, patterns: ['ikhfa', 'ikhfa_haqiqi'] },
-  ikhfa_syafawi:      { color: BaseTajweedColors.hijau, patterns: ['ikhfa_syafawi', 'ikhfa-syafawi'] },
+  ikhfa: { color: BaseTajweedColors.hijau, patterns: ['ikhfa', 'ikhfa_haqiqi', 'ikhafa'] },
+  ikhfa_syafawi: { color: BaseTajweedColors.hijau, patterns: ['ikhfa_syafawi', 'ikhfa-syafawi', 'ikhafa_shafawi'] },
   mad_jaiz_munfashil: { color: BaseTajweedColors.hijau, patterns: ['mad_jaiz_munfashil', 'mad_munfashil', 'mad-jaiz-munfashil', 'madda_permissible'] },
   mad_silah_thawilah: { color: BaseTajweedColors.hijau, patterns: ['mad_silah_thawilah', 'silah_thawilah', 'mad-silah-thawilah'] },
-  mad_umum:           { color: BaseTajweedColors.hijau, patterns: ['mad', 'madda_normal', 'madd'] },
-  al_washlu_aula:     { color: BaseTajweedColors.hijau, patterns: ['al_washlu_aula', 'washlu_aula', 'washl_aula'] },
-  la_waqfa_fih:       { color: BaseTajweedColors.hijau, patterns: ['la_waqfa_fih', 'la_waqaf', 'la-waqfa-fih'] },
+  mad_umum: { color: BaseTajweedColors.hijau, patterns: ['mad', 'madda_normal', 'madd'] },
+  al_washlu_aula: { color: BaseTajweedColors.hijau, patterns: ['al_washlu_aula', 'washlu_aula', 'washl_aula'] },
+  la_waqfa_fih: { color: BaseTajweedColors.hijau, patterns: ['la_waqfa_fih', 'la_waqaf', 'la-waqfa-fih'] },
 
   // 🔵 BIRU
-  qalqalah:       { color: BaseTajweedColors.biru, patterns: ['qalqalah'] },
+  qalqalah: { color: BaseTajweedColors.biru, patterns: ['qalqalah', 'qalaqah'] },
   waqaf_muanaqah: { color: BaseTajweedColors.biru, patterns: ['waqaf_muanaqah', 'muanaqah', 'waqaf-muanaqah'] },
-  waqaf_jaiz:     { color: BaseTajweedColors.biru, patterns: ['waqaf_jaiz', 'waqf_jaiz', 'waqaf-jaiz', 'waqaf'] },
+  waqaf_jaiz: { color: BaseTajweedColors.biru, patterns: ['waqaf_jaiz', 'waqf_jaiz', 'waqaf-jaiz', 'waqaf'] },
 
   // ⚫ ABU-ABU
-  huruf_tidak_dilafalkan: { color: BaseTajweedColors.abu_abu, patterns: ['tidak_dilafalkan', 'silent', 'muted', 'k30'] },
-  akhir_ayat:             { color: BaseTajweedColors.abu_abu, patterns: ['akhir-ayat', 'akhir_ayat', 'end_verse'] },
+  huruf_tidak_dilafalkan: { color: BaseTajweedColors.abu_abu, patterns: ['tidak_dilafalkan', 'silent', 'muted', 'k30', 'slnt'] },
+  akhir_ayat: { color: BaseTajweedColors.abu_abu, patterns: ['akhir-ayat', 'akhir_ayat', 'end_verse'] },
 
   // DEFAULT
-  hamzah_wasal:  { color: BaseTajweedColors.default, patterns: ['ham_wasl', 'hamzah-wasal', 'hamzah_wasal'] },
+  hamzah_wasal: { color: BaseTajweedColors.default, patterns: ['ham_wasl', 'hamzah-wasal', 'hamzah_wasal'] },
   lam_qamariyah: { color: BaseTajweedColors.default, patterns: ['laam_qamariyah', 'lam_qamariyah'] },
 };
 
@@ -101,11 +101,13 @@ export const getTajweedColor = (className: string): { color: string } | null => 
     tryLookup(clean.toLowerCase().replace(/_/g, '-')) ??
     tryLookup(clean.toLowerCase().replace(/-/g, '_'))
   )
-    ? { color: TajweedColors[
-        [clean, clean.toLowerCase(), clean.replace(/_/g,'-'), clean.replace(/-/g,'_'),
-         clean.toLowerCase().replace(/_/g,'-'), clean.toLowerCase().replace(/-/g,'_')]
+    ? {
+      color: TajweedColors[
+        [clean, clean.toLowerCase(), clean.replace(/_/g, '-'), clean.replace(/-/g, '_'),
+          clean.toLowerCase().replace(/_/g, '-'), clean.toLowerCase().replace(/-/g, '_')]
           .find(v => TajweedColors[v])!
-      ] }
+      ]
+    }
     : null;
 };
 
@@ -164,7 +166,7 @@ export const getTajweedInfo = (className: string): TajweedInfo | null => {
 
   for (const [ruleName, { color, patterns }] of Object.entries(TajweedPatterns)) {
     const match = patterns.some(p =>
-      [p.toLowerCase(), p.toLowerCase().replace(/_/g,'-'), p.toLowerCase().replace(/-/g,'_')]
+      [p.toLowerCase(), p.toLowerCase().replace(/_/g, '-'), p.toLowerCase().replace(/-/g, '_')]
         .includes(clean)
     );
     if (match) return { rule: ruleName, color, className };
