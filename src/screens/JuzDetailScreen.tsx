@@ -13,6 +13,9 @@ import VerseItem from '../components/VerseItem';
 import { useTheme } from '../contexts/ThemeContext';
 import { useFonts } from '../contexts/FontContext';
 import { JuzStackParamList } from '../types/navigation';
+import {
+  VerseItemSkeleton, BismillahSkeleton, SurahHeaderSkeleton,
+} from '../components/SkeletonLoader';
 
 type Props = {
   navigation: StackNavigationProp<JuzStackParamList, 'JuzDetail'>;
@@ -396,26 +399,28 @@ export default function JuzDetailScreen({ navigation, route }: Props) {
   // ─ Loading screen ─────────────────────────────────────────────────────────
   if (loading && verses.length === 0) {
     return (
-      <View style={[styles.loadingScreen, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Gradient header stays visible */}
         <LinearGradient
           colors={isDarkMode ? ['#2D3748', '#4A5568'] : ['#667eea', '#7c3aed']}
-          style={styles.loadingGradient}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
         >
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.loadingJuzLabel}>JUZ {juzNumber}</Text>
-          <Text style={[getArabicTextStyle(26), styles.loadingArabic]}>{arabicName}</Text>
+          <View style={styles.juzBadge}>
+            <Text style={styles.juzBadgeNum}>{juzNumber}</Text>
+            <Text style={styles.juzBadgeLabel}>JUZ</Text>
+          </View>
+          <Text style={[getArabicTextStyle(28), styles.juzArabicName]}>{arabicName}</Text>
+          <Text style={styles.juzRange}>{startSurah} — {endSurah}</Text>
         </LinearGradient>
-        <View style={styles.loadingBody}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Memuat Juz {juzNumber}…
-          </Text>
-          <Text style={[styles.loadingSubtext, { color: colors.textLight }]}>
-            {startSurah} sampai {endSurah}
-          </Text>
-        </View>
+        {/* Skeleton content */}
+        <BismillahSkeleton />
+        {Array.from({ length: 7 }).map((_, i) => (
+          <VerseItemSkeleton key={i} odd={i % 2 !== 0} />
+        ))}
       </View>
     );
   }

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, TextInput, ActivityIndicator, Alert,
+  StyleSheet, TextInput, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,6 +12,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { QuranAPI, Chapter } from '../services/quranAPI';
 import { useTheme } from '../contexts/ThemeContext';
 import { SurahStackParamList } from '../types/navigation';
+import {
+  SkeletonBox, LastReadSkeleton, SurahItemSkeleton, SectionHeaderSkeleton, SearchBarSkeleton,
+} from '../components/SkeletonLoader';
 
 type Props = { navigation: StackNavigationProp<SurahStackParamList, 'SurahList'> };
 
@@ -210,11 +213,16 @@ export default function SurahListScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
-  // ─ Loading state ──────────────────────────────────────────────────────────
+  // ─ Skeleton loading state ──────────────────────────────────────────────────
   if (loading) return (
-    <View testID="surah-list-loading" style={[styles.center, { backgroundColor: colors.background }]}>
-      <ActivityIndicator size="large" color={colors.loadingPrimary} />
-      <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Memuat Al-Qur'an...</Text>
+    <View testID="surah-list-loading"
+      style={[styles.container, { backgroundColor: colors.background }]}>
+      <SearchBarSkeleton />
+      <View style={{ paddingHorizontal: 16 }}>
+        <LastReadSkeleton />
+        <SectionHeaderSkeleton />
+        {Array.from({ length: 8 }).map((_, i) => <SurahItemSkeleton key={i} />)}
+      </View>
     </View>
   );
 
@@ -271,8 +279,6 @@ export default function SurahListScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container:     { flex: 1 },
-  center:        { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText:   { marginTop: 16, fontSize: 16, fontWeight: '500' },
 
   // Search
   searchSection: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },

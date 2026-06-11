@@ -1,7 +1,7 @@
 // screens/SurahDetailScreen.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, FlatList, StyleSheet, ActivityIndicator,
+  View, FlatList, StyleSheet,
   Alert, Text, StatusBar, ListRenderItemInfo, ViewToken,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,6 +15,9 @@ import LoadMoreFooter    from '../components/LoadMoreFooter';
 import CompactMusicPlayer from '../components/CompactMusicPlayer';
 import { useTheme } from '../contexts/ThemeContext';
 import { SurahStackParamList } from '../types/navigation';
+import {
+  VerseItemSkeleton, BismillahSkeleton, SearchBarSkeleton,
+} from '../components/SkeletonLoader';
 
 type Props = {
   navigation: StackNavigationProp<SurahStackParamList, 'SurahDetail'>;
@@ -149,14 +152,23 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
   };
 
   if (loading && verses.length === 0) return (
-    <View style={[styles.center, { backgroundColor: colors.background }]}>
-      <ActivityIndicator size="large" color={colors.loadingPrimary} style={{ marginBottom: 16 }} />
-      <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-        Memuat ayat dengan tajweed...
-      </Text>
-      <Text style={[styles.loadingSubtext, { color: colors.textLight }]}>
-        {surah.name_simple}
-      </Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Keep the surah header visible while loading */}
+      <SurahHeader
+        surah={surah}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
+        showTranslation={showTranslation}
+        setShowTranslation={setShowTranslation}
+        theme={{ colors, isDarkMode, gradients }}
+        minFontSize={20}
+        maxFontSize={40}
+      />
+      {/* Skeleton verses */}
+      <BismillahSkeleton />
+      {Array.from({ length: 6 }).map((_, i) => (
+        <VerseItemSkeleton key={i} odd={i % 2 !== 0} />
+      ))}
     </View>
   );
 

@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../contexts/ThemeContext';
-import TabNavigator from './TabNavigator';
+import TabNavigator from '././TabNavigator';
 
 export default function AppNavigator() {
   const { colors, isDarkMode } = useTheme();
