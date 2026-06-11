@@ -1,9 +1,10 @@
 // screens/SurahDetailScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, FlatList, StyleSheet, ActivityIndicator,
-  Alert, Text, StatusBar, ListRenderItemInfo,
+  Alert, Text, StatusBar, ListRenderItemInfo, ViewToken,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { QuranAPI, Verse, Translation } from '../services/quranAPI';
@@ -26,14 +27,35 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
   const { surah } = route.params;
   const { colors, isDarkMode, gradients } = useTheme();
 
-  const [verses,       setVerses]       = useState<Verse[]>([]);
-  const [translations, setTranslations] = useState<Translation[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [loadingMore,  setLoadingMore]  = useState(false);
-  const [fontSize,     setFontSize]     = useState(28);
+  const [verses,          setVerses]          = useState<Verse[]>([]);
+  const [translations,    setTranslations]    = useState<Translation[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [loadingMore,     setLoadingMore]     = useState(false);
+  const [fontSize,        setFontSize]        = useState(28);
   const [showTranslation, setShowTranslation] = useState(true);
-  const [currentPage,  setCurrentPage]  = useState(1);
-  const [hasMoreData,  setHasMoreData]  = useState(true);
+  const [currentPage,     setCurrentPage]     = useState(1);
+  const [hasMoreData,     setHasMoreData]     = useState(true);
+
+  // ─ Track the topmost visible ayah ─────────────────────────────────────────
+  const currentAyahRef = useRef(1);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0) {
+        const first = viewableItems[0].item as Verse;
+        if (first?.verse_number) currentAyahRef.current = first.verse_number;
+      }
+    }
+  ).current;
+
+  // ─ Save last read when screen opens ───────────────────────────────────────
+  useEffect(() => {
+    AsyncStorage.setItem('lastRead', JSON.stringify({
+      surahId:         surah.id,
+      surahName:       surah.name_simple,
+      surahNameArabic: surah.name_arabic,
+      ayahNumber:      1,
+    })).catch(() => {});
+  }, [surah]);
 
   useEffect(() => { loadContent(); }, []);
   useEffect(() => {
@@ -81,7 +103,7 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
     if (hasMoreData && !loading && !loadingMore) loadContent(currentPage + 1, true);
   };
 
-  const handleAudioError = (verseNumber: number, error: Error) => {
+  const handleAudioError = (verseNumber: number) => {
     Alert.alert(
       'Audio Error',
       `Tidak dapat memutar audio untuk ayat ${verseNumber}. Coba lagi nanti.`,
@@ -107,7 +129,7 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
         theme={{ colors, isDarkMode, gradients }}
         onAudioPlaybackStart={() => {}}
         onAudioPlaybackEnd={() => {}}
-        onAudioPlaybackError={err => handleAudioError(item.verse_number, err)}
+        onAudioPlaybackError={err => handleAudioError(item.verse_number)}
       />
     );
   };
@@ -146,6 +168,8 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
         keyExtractor={(item, index) =>
           item.id?.toString() ?? item.verse_key ?? `${surah.id}-${item.verse_number ?? index}`
         }
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         ListHeaderComponent={
           <SurahHeader
             surah={surah}
@@ -192,12 +216,12 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1 },
-  center:       { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
-  loadingText:  { fontSize: 16, fontWeight: '500', textAlign: 'center', marginBottom: 8 },
-  loadingSubtext: { fontSize: 14, textAlign: 'center', fontStyle: 'italic' },
-  listContent:  { paddingHorizontal: 16, paddingVertical: 8, paddingBottom: 80 },
-  separator:    { height: 1, marginHorizontal: 16, opacity: 0.1, marginVertical: 8 },
-  empty:        { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-  emptyText:    { fontSize: 16, textAlign: 'center' },
+  container:       { flex: 1 },
+  center:          { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  loadingText:     { fontSize: 16, fontWeight: '500', textAlign: 'center', marginBottom: 8 },
+  loadingSubtext:  { fontSize: 14, textAlign: 'center', fontStyle: 'italic' },
+  listContent:     { paddingHorizontal: 16, paddingVertical: 8, paddingBottom: 100 },
+  separator:       { height: 1, marginHorizontal: 16, opacity: 0.1, marginVertical: 8 },
+  empty:           { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
+  emptyText:       { fontSize: 16, textAlign: 'center' },
 });

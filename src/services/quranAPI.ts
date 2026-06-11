@@ -178,6 +178,99 @@ export const QuranAPI = {
     const surah = chapterNumber.toString().padStart(3, '0');
     return `https://cdn.equran.id/audio-full/${folder}/${surah}.mp3`;
   },
+
+  // ─── Juz methods ────────────────────────────────────────────────────────────
+
+  /**
+   * Fetch metadata for all 30 Juz (verse_mapping, verse count, first/last id).
+   */
+  async getJuzsMeta(): Promise<JuzMeta[]> {
+    const response = await fetch(`${BASE_URL}/juzs`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return (data.juzs ?? []) as JuzMeta[];
+  },
+
+  /**
+   * Fetch verses for a Juz with tajwid + uthmani parallel, same pattern as getVerses().
+   * Returns the verse list + a boolean indicating whether a next page exists.
+   */
+  async getVersesByJuz(
+    juzNumber: number,
+    page = 1,
+    perPage = 50,
+  ): Promise<JuzVersesResult> {
+    const params = `juz_number=${juzNumber}&page=${page}&per_page=${perPage}`;
+
+    const [tajweedRes, uthmaniRes] = await Promise.all([
+      fetch(`${TAJWEED_BASE_URL}?${params}`),
+      fetch(`${UTHMANI_BASE_URL}?${params}`),
+    ]);
+
+    if (!tajweedRes.ok) throw new Error(`HTTP error! status: ${tajweedRes.status}`);
+    if (!uthmaniRes.ok) throw new Error(`HTTP error! status: ${uthmaniRes.status}`);
+
+    const [tajweedData, uthmaniData] = await Promise.all([
+      tajweedRes.json(),
+      uthmaniRes.json(),
+    ]);
+
+    // Fast lookup: verse_key → clean uthmani text
+    const uthmaniMap: Record<string, string> = {};
+    (uthmaniData.verses ?? []).forEach((v: { verse_key: string; text_uthmani: string }) => {
+      uthmaniMap[v.verse_key] = v.text_uthmani;
+    });
+
+    const verses: Verse[] = (tajweedData.verses ?? []).map((verse: Verse, index: number): Verse => {
+      const verseKey = verse.verse_key ?? `${juzNumber}:${index + 1}`;
+      return {
+        id:                   verse.id ?? `juz${juzNumber}-${index + 1}`,
+        verse_number:         verse.verse_number ?? index + 1,
+        verse_key:            verseKey,
+        text_uthmani:         uthmaniMap[verseKey] ?? verse.text_uthmani ?? '',
+        text_uthmani_tajweed: verse.text_uthmani_tajweed ?? verse.text_uthmani ?? '',
+        hizb_number:          verse.hizb_number,
+        rub_number:           verse.rub_number,
+        ruku_number:          verse.ruku_number,
+        manzil_number:        verse.manzil_number,
+        sajdah_number:        verse.sajdah_number,
+        juz_number:           verse.juz_number,
+        page_number:          verse.page_number,
+      };
+    });
+
+    const meta = tajweedData.meta ?? {};
+    const totalCount  = meta.total_count ?? verses.length;
+    const nextPage    = meta.next_page;          // null if last page
+    const hasNextPage = nextPage !== null && nextPage !== undefined;
+
+    return { verses, hasNextPage, totalCount };
+  },
+
+  /**
+   * Fetch Indonesian translations (id 33) for all verses in a Juz.
+   */
+  async getTranslationsByJuz(
+    juzNumber: number,
+    page = 1,
+    perPage = 50,
+  ): Promise<Translation[]> {
+    const response = await fetch(
+      `${BASE_URL}/quran/translations/33?juz_number=${juzNumber}&page=${page}&per_page=${perPage}`,
+    );
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+
+    return (data.translations ?? []).map((t: Translation, index: number): Translation => ({
+      id:            t.id ?? `jtrans-${juzNumber}-${page}-${index}`,
+      verse_number:  t.verse_number ?? index + 1,
+      verse_key:     t.verse_key ?? '',
+      text:          cleanTranslationText(t.text),
+      raw_text:      t.text,
+      resource_name: t.resource_name ?? 'Kemenag RI',
+      language_name: t.language_name ?? 'indonesian',
+    }));
+  },
 };
 
 // ─── EquranAPI (equran.id v2) ─────────────────────────────────────────────────
@@ -238,3 +331,19 @@ export const EquranAPI = {
     };
   },
 };
+// ─── Juz interfaces ───────────────────────────────────────────────────────────
+
+export interface JuzMeta {
+  id:             number;
+  juz_number:     number;
+  verse_mapping:  Record<string, string>; // "1" -> "1-7", "2" -> "1-141"
+  first_verse_id: number;
+  last_verse_id:  number;
+  verses_count:   number;
+}
+
+export interface JuzVersesResult {
+  verses:      Verse[];
+  hasNextPage: boolean;
+  totalCount:  number;
+}

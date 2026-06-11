@@ -4,8 +4,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { SurahStackParamList } from '../types/navigation';
 import { makeStackScreenOptions } from './screenOptions';
-import SurahListScreen   from '../screens/SurahListScreen';
-import SurahDetailScreen from '../screens/SurahDetailScreen';
+import SurahListScreen      from '../screens/SurahListScreen';
+import SurahDetailScreen    from '../screens/SurahDetailScreen';
+import TajweedLessonsScreen from '../screens/TajweedLessonsScreen';
+import TajweedDetailScreen  from '../screens/TajweedDetailScreen';
 
 const Stack = createStackNavigator<SurahStackParamList>();
 
@@ -17,14 +19,24 @@ export default function SurahStackNavigator() {
       <Stack.Screen
         name="SurahList"
         component={SurahListScreen}
-        options={{ title: "Al-Qur'an Digital", headerTitleAlign: 'center' }}
+        options={{ title: "Al-Qur'an", headerTitleAlign: 'center' }}
       />
       <Stack.Screen
         name="SurahDetail"
         component={SurahDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TajweedLessons"
+        component={TajweedLessonsScreen}
+        options={{ title: 'Panduan Tajwid', headerTitleAlign: 'center' }}
+      />
+      <Stack.Screen
+        name="TajweedDetail"
+        component={TajweedDetailScreen}
         options={({ route }) => ({
-          title: route.params?.surah?.name_simple ?? 'Surah',
-          headerTitleAlign: 'center',
+          title:             route.params?.title ?? 'Detail',
+          headerTitleAlign:  'center',
         })}
       />
     </Stack.Navigator>

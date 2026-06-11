@@ -2,146 +2,301 @@
 import React, { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, TextInput, ListRenderItemInfo,
+  StyleSheet, TextInput, ListRenderItemInfo, ScrollView,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { TajweedStackParamList } from '../types/navigation';
+import { SurahStackParamList } from '../types/navigation';
 
-type Props = { navigation: StackNavigationProp<TajweedStackParamList, 'TajweedLessons'> };
+// Accept either SurahStack or SettingsStack navigation
+type Props = {
+  navigation: StackNavigationProp<any>;
+};
 
 interface TajweedLesson {
-  id:          string;
-  title:       string;
-  description: string;
-  category:    string;
-  color:       string;
-  icon:        string;
-  arabic:      string;
-  examples:    string[];
+  id:             string;
+  title:          string;
+  description:    string;
+  category:       string;
+  color:          string;
+  icon:           string;
+  arabic:         string;
+  transliteration: string;
+  examples:       string[];
 }
 
 const TAJWEED_LESSONS: TajweedLesson[] = [
-  { id: 'nun_sukun',    title: 'Nun Sukun & Tanwin',    description: 'Hukum bacaan nun mati dan tanwin meliputi Idzhar, Idgham, Iqlab, dan Ikhfa.',   category: 'Dasar',    color: '#e53e3e', icon: 'musical-notes', arabic: 'نْ / ً ٍ ٌ', examples: ['إِنْ أَنتُمْ', 'مِن مَّاءٍ'] },
-  { id: 'mim_sukun',    title: 'Mim Sukun',             description: 'Hukum bacaan mim mati meliputi Ikhfa Syafawi, Idgham Mimi, dan Idzhar Syafawi.', category: 'Dasar',    color: '#9c27b0', icon: 'text',          arabic: 'مْ',           examples: ['أَمْ بِهِ', 'هُمْ فِيهَا'] },
-  { id: 'mad',          title: 'Mad (Pemanjangan)',     description: 'Hukum bacaan mad untuk memanjangkan suara pada huruf mad.',                        category: 'Lanjutan', color: '#4facfe', icon: 'resize',        arabic: 'ا و ي',         examples: ['الرَّحْمَٰنِ', 'قَالُوا'] },
-  { id: 'qalqalah',     title: 'Qalqalah',             description: 'Hukum bacaan memantulkan suara pada huruf qalqalah: ق ط ب ج د.',                    category: 'Dasar',    color: '#2196f3', icon: 'pulse',         arabic: 'قطبجد',         examples: ['يَخْلُقْكُمْ', 'قَدْ أَفْلَحَ'] },
-  { id: 'tafkhim',      title: 'Tafkhim & Tarqiq',     description: 'Hukum bacaan tebal (tafkhim) dan tipis (tarqiq) pada huruf tertentu.',              category: 'Lanjutan', color: '#38a169', icon: 'volume-high',   arabic: 'ل ر',           examples: ['اللَّهِ', 'الرَّحِيمِ'] },
-  { id: 'waqaf',        title: 'Waqaf & Ibtida',       description: 'Hukum berhenti (waqaf) dan memulai (ibtida) dalam membaca Al-Qur\'an.',             category: 'Lanjutan', color: '#e53e3e', icon: 'pause',         arabic: 'م ط ج ز',       examples: ['مـ', 'ط', 'ج'] },
-  { id: 'idgham',       title: 'Idgham',               description: 'Hukum memasukkan huruf ke huruf berikutnya: Idgham Bighunnah dan Bilaghunnah.',      category: 'Dasar',    color: '#9c27b0', icon: 'git-merge',     arabic: 'ي ر م ل و ن',  examples: ['مِن نَّعِيمٍ', 'مِن لَّدُنْكَ'] },
-  { id: 'ikhfa',        title: 'Ikhfa Haqiqi',         description: 'Hukum menyamarkan bunyi nun sukun/tanwin sebelum 15 huruf ikhfa.',                  category: 'Dasar',    color: '#4caf50', icon: 'eye-off',       arabic: 'ث ج ذ ز س ش...', examples: ['مِنكُم', 'أَنتُمْ'] },
-  { id: 'iqlab',        title: 'Iqlab',                description: 'Hukum menukar nun sukun/tanwin menjadi mim apabila bertemu huruf ب.',              category: 'Dasar',    color: '#00bcd4', icon: 'swap-horizontal', arabic: 'ب',             examples: ['مِن بَعْدِ', 'سَمِيعٌ بَصِيرٌ'] },
-  { id: 'idzhar',       title: 'Idzhar Halqi',         description: 'Hukum membaca nun sukun/tanwin dengan jelas apabila bertemu huruf halq.',          category: 'Dasar',    color: '#805ad5', icon: 'mic',           arabic: 'ء ه ع ح غ خ',  examples: ['مَنْ آمَنَ', 'عَلِيمٌ خَبِيرٌ'] },
-  { id: 'ghunnah',      title: 'Ghunnah',             description: 'Hukum mendengungkan bacaan pada nun dan mim yang bertasydid.',                       category: 'Lanjutan', color: '#9c27b0', icon: 'radio',         arabic: 'نّ مّ',          examples: ['إِنَّ', 'ثُمَّ'] },
-  { id: 'lam_syamsiyah', title: 'Lam Syamsiyah & Qamariyah', description: 'Hukum lam alif: Syamsiyah (diidghamkan) dan Qamariyah (dibaca jelas).',       category: 'Dasar',    color: '#e53e3e', icon: 'sunny',         arabic: 'الـ',           examples: ['الشَّمْسُ', 'الْقَمَرُ'] },
+  {
+    id: 'iqlab', title: 'Iqlab', description: 'Tukar nun sukun/tanwin menjadi mim apabila bertemu huruf ب, dengan dengung.',
+    category: 'Dasar', color: '#e56b8c', icon: 'swap-horizontal',
+    arabic: 'مِنۢ بَعْدِ', transliteration: 'Min [m] ba\'di',
+    examples: ['مِن بَعْدِ', 'سَمِيعٌ بَصِيرٌ'],
+  },
+  {
+    id: 'ikhfa', title: 'Ikhfa', description: 'Samarkan bunyi nun sukun/tanwin saat bertemu 15 huruf ikhfa, menghasilkan suara sengau.',
+    category: 'Dasar', color: '#4a9fd4', icon: 'water',
+    arabic: 'مَن شَآءَ', transliteration: 'Man [sh]aa\'a',
+    examples: ['مِنكُم', 'أَنتُمْ'],
+  },
+  {
+    id: 'qalqalah', title: 'Qalqalah', description: 'Hasilkan bunyi "memantul" atau bergema pada lima huruf (ق ط ب ج د) saat berharakat Sukun.',
+    category: 'Dasar', color: '#3b82f6', icon: 'pulse',
+    arabic: 'نُفْلِقُ', transliteration: 'Al-Falaq',
+    examples: ['يَخْلُقْكُمْ', 'قَدْ أَفْلَحَ'],
+  },
+  {
+    id: 'ghunnah', title: 'Ghunnah', description: 'Tahan dengung hidung selama dua ketukan saat nun (نّ) atau mim (مّ) berharakat Syaddah.',
+    category: 'Dasar', color: '#f59e0b', icon: 'radio',
+    arabic: 'إِنَّ', transliteration: 'Inna...',
+    examples: ['إِنَّ', 'ثُمَّ'],
+  },
+  {
+    id: 'idgham', title: 'Idgham', description: 'Masukkan huruf ke huruf berikutnya: Idgham Bighunnah (dengan dengung) dan Bilaghunnah (tanpa dengung).',
+    category: 'Dasar', color: '#8b5cf6', icon: 'git-merge',
+    arabic: 'ي ر م ل و ن', transliteration: 'Ya Ra Mim Lam Waw Nun',
+    examples: ['مِن نَّعِيمٍ', 'مِن لَّدُنْكَ'],
+  },
+  {
+    id: 'idzhar', title: 'Idzhar Halqi', description: 'Baca nun sukun/tanwin dengan jelas dan nyaring saat bertemu enam huruf halq (tenggorokan).',
+    category: 'Dasar', color: '#10b981', icon: 'mic',
+    arabic: 'ء ه ع ح غ خ', transliteration: 'Huruf Halq',
+    examples: ['مَنْ آمَنَ', 'عَلِيمٌ خَبِيرٌ'],
+  },
+  {
+    id: 'mad', title: 'Mad (Pemanjangan)', description: 'Panjangkan suara pada huruf mad (ا و ي) sesuai dengan ketentuan masing-masing jenis mad.',
+    category: 'Lanjutan', color: '#06b6d4', icon: 'resize',
+    arabic: 'ا و ي', transliteration: 'Alif, Waw, Ya',
+    examples: ['الرَّحْمَٰنِ', 'قَالُوا'],
+  },
+  {
+    id: 'tafkhim', title: 'Tafkhim & Tarqiq', description: 'Tafkhim = tebalkan suara. Tarqiq = tipiskan suara. Berlaku pada huruf tertentu seperti ل dan ر.',
+    category: 'Lanjutan', color: '#22c55e', icon: 'volume-high',
+    arabic: 'ل ر', transliteration: 'Lam, Ra',
+    examples: ['اللَّهِ', 'الرَّحِيمِ'],
+  },
+  {
+    id: 'mim_sukun', title: 'Mim Sukun', description: 'Hukum mim mati: Ikhfa Syafawi (bibir), Idgham Mimi (lebur), dan Idzhar Syafawi (jelas).',
+    category: 'Dasar', color: '#a855f7', icon: 'text',
+    arabic: 'مْ', transliteration: 'Mim Sukun',
+    examples: ['أَمْ بِهِ', 'هُمْ فِيهَا'],
+  },
+  {
+    id: 'waqaf', title: 'Waqaf & Ibtida', description: 'Ketentuan berhenti (waqaf) dan memulai kembali (ibtida) dalam membaca Al-Qur\'an.',
+    category: 'Lanjutan', color: '#ef4444', icon: 'pause',
+    arabic: 'م ط ج ز', transliteration: 'Tanda Waqaf',
+    examples: ['مـ', 'ط', 'ج'],
+  },
+  {
+    id: 'lam_syamsiyah', title: 'Lam Syamsiyah & Qamariyah', description: 'Lam alif Syamsiyah diidghamkan ke huruf berikut. Lam Qamariyah dibaca jelas.',
+    category: 'Dasar', color: '#f97316', icon: 'sunny',
+    arabic: 'الـ', transliteration: 'Alif Lam',
+    examples: ['الشَّمْسُ', 'الْقَمَرُ'],
+  },
+  {
+    id: 'nun_sukun', title: 'Nun Sukun & Tanwin', description: 'Empat hukum: Idzhar (jelas), Idgham (lebur), Iqlab (tukar), dan Ikhfa (samar).',
+    category: 'Dasar', color: '#ec4899', icon: 'musical-notes',
+    arabic: 'نْ / ً ٍ ٌ', transliteration: 'Nun Sukun / Tanwin',
+    examples: ['إِنْ أَنتُمْ', 'مِن مَّاءٍ'],
+  },
 ];
 
 const CATEGORIES = ['Semua', 'Dasar', 'Lanjutan'];
 
 export default function TajweedLessonsScreen({ navigation }: Props) {
   const { colors, isDarkMode } = useTheme();
-  const [searchQuery,      setSearchQuery]      = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Semua');
+  const [searchQuery,       setSearchQuery]      = useState('');
+  const [selectedCategory,  setSelectedCategory] = useState('Semua');
 
   const filtered = TAJWEED_LESSONS.filter(lesson => {
-    const matchSearch   = !searchQuery.trim() ||
+    const matchSearch =
+      !searchQuery.trim() ||
       lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCategory = selectedCategory === 'Semua' || lesson.category === selectedCategory;
+    const matchCategory =
+      selectedCategory === 'Semua' || lesson.category === selectedCategory;
     return matchSearch && matchCategory;
   });
 
+  // ─── Card render ───────────────────────────────────────────────────────────
   const renderItem = ({ item }: ListRenderItemInfo<TajweedLesson>) => (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-      onPress={() => navigation.navigate('TajweedDetail', { lessonId: item.id, title: item.title })}
-      activeOpacity={0.7}
+      style={[styles.card, {
+        backgroundColor: colors.cardBackground,
+        borderColor:     colors.border,
+      }]}
+      onPress={() =>
+        navigation.navigate('TajweedDetail', { lessonId: item.id, title: item.title })
+      }
+      activeOpacity={0.75}
     >
-      <View style={[styles.cardLeft, { backgroundColor: item.color + '18', borderLeftColor: item.color }]}>
-        <View style={[styles.iconCircle, { backgroundColor: item.color }]}>
-          <Ionicons name={item.icon as React.ComponentProps<typeof Ionicons>['name']} size={22} color="#fff" />
-        </View>
-        <Text style={[styles.arabic, { color: item.color, fontFamily: 'Amiri' }]}>{item.arabic}</Text>
-      </View>
+      {/* Left colored accent bar */}
+      <View style={[styles.accentBar, { backgroundColor: item.color }]} />
 
-      <View style={styles.cardBody}>
-        <View style={styles.cardHeader}>
-          <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
-          <View style={[styles.badge, { backgroundColor: item.color + '22', borderColor: item.color + '44' }]}>
-            <Text style={[styles.badgeText, { color: item.color }]}>{item.category}</Text>
+      <View style={styles.cardInner}>
+        {/* Top row: icon + arabic text */}
+        <View style={styles.cardTop}>
+          <View style={[styles.iconCircle, { backgroundColor: item.color + '20' }]}>
+            <Ionicons
+              name={item.icon as React.ComponentProps<typeof Ionicons>['name']}
+              size={18}
+              color={item.color}
+            />
+          </View>
+
+          <View style={styles.arabicBlock}>
+            <Text style={[styles.arabicText, { color: item.color, fontFamily: 'Amiri-Bold' }]}>
+              {item.arabic}
+            </Text>
+            <Text style={[styles.transliteration, { color: colors.textSecondary }]}>
+              {item.transliteration}
+            </Text>
+          </View>
+
+          <View style={[styles.categoryBadge, { backgroundColor: item.color + '18', borderColor: item.color + '40' }]}>
+            <Text style={[styles.categoryText, { color: item.color }]}>{item.category}</Text>
           </View>
         </View>
 
-        <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
+        {/* Title + description */}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+        <Text style={[styles.cardDesc, { color: colors.textSecondary }]} numberOfLines={2}>
           {item.description}
         </Text>
 
+        {/* Example chips */}
         {item.examples.length > 0 && (
           <View style={styles.exampleRow}>
-            <Text style={[styles.exampleLabel, { color: colors.textLight }]}>Contoh: </Text>
             {item.examples.slice(0, 2).map((ex, i) => (
-              <View key={i} style={[styles.exampleChip, { backgroundColor: colors.exampleBackground, borderColor: colors.exampleBorder + '44' }]}>
-                <Text style={[styles.exampleText, { color: colors.arabicText, fontFamily: 'Amiri' }]}>{ex}</Text>
+              <View
+                key={i}
+                style={[styles.exampleChip, {
+                  backgroundColor: isDarkMode ? colors.optionBackground : colors.background,
+                  borderColor:     colors.borderLight,
+                }]}
+              >
+                <Text style={[styles.exampleText, { color: colors.arabicText, fontFamily: 'Amiri' }]}>
+                  {ex}
+                </Text>
               </View>
             ))}
           </View>
         )}
       </View>
-
-      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
     </TouchableOpacity>
+  );
+
+  // ─── List header ───────────────────────────────────────────────────────────
+  const ListHeader = () => (
+    <View>
+      {/* Hero */}
+      <View style={styles.hero}>
+        <View style={[styles.heroIcon, { backgroundColor: colors.primary + '18' }]}>
+          <Ionicons name="book" size={36} color={colors.primary} />
+        </View>
+        <Text style={[styles.heroTitle, { color: colors.text }]}>Panduan Tajwid</Text>
+        <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
+          Tingkatkan bacaan dengan sistem pewarnaan{'\n'}tajwid untuk fokus dan kejelasan
+        </Text>
+      </View>
+
+      {/* Search */}
+      <View style={[styles.searchBox, {
+        backgroundColor: colors.cardBackground,
+        borderColor:     colors.border,
+      }]}>
+        <Ionicons name="search" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder="Cari hukum tajwid..."
+          placeholderTextColor={colors.textLight}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          selectionColor={colors.primary}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Category filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+        {CATEGORIES.map(cat => {
+          const active = selectedCategory === cat;
+          return (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.filterChip, {
+                backgroundColor: active ? colors.primary : colors.cardBackground,
+                borderColor:     active ? colors.primary : colors.border,
+              }]}
+              onPress={() => setSelectedCategory(cat)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.filterText, {
+                color:      active ? '#fff' : colors.textSecondary,
+                fontWeight: active ? '700' : '500',
+              }]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  // ─── Pro Tip footer ────────────────────────────────────────────────────────
+  const ListFooter = () => (
+    <View style={[styles.proTipCard, {
+      backgroundColor: isDarkMode ? colors.cardBackground : '#1e293b',
+      borderColor:     colors.primary + '40',
+    }]}>
+      <View style={styles.proTipHeader}>
+        <View style={[styles.proTipBadge, { backgroundColor: colors.primary }]}>
+          <Text style={styles.proTipBadgeText}>PRO TIP</Text>
+        </View>
+        <Text style={styles.proTipTitle}>Mode Membaca Terfokus</Text>
+      </View>
+      <Text style={styles.proTipDesc}>
+        Aplikasi secara otomatis menerapkan warna-warna ini ke tampilan Mushaf untuk memandu lisan kamu secara real-time.
+      </Text>
+      <View style={styles.proTipList}>
+        {[
+          'Highlight tonal muncul hanya saat dibutuhkan, meminimalkan gangguan visual.',
+          'Aktifkan/nonaktifkan lapisan Tajwid dari menu Setelan membaca.',
+        ].map((tip, i) => (
+          <View key={i} style={styles.proTipItem}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={{ marginTop: 1 }} />
+            <Text style={styles.proTipItemText}>{tip}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-
-      {/* Search */}
-      <View style={styles.searchSection}>
-        <View style={[styles.searchBox, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Cari materi tajwid..."
-            placeholderTextColor={colors.textLight}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            selectionColor={colors.primary}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Category filter */}
-      <View style={styles.filterRow}>
-        {CATEGORIES.map(cat => (
-          <TouchableOpacity
-            key={cat}
-            style={[styles.filterBtn, { borderColor: colors.border, backgroundColor: selectedCategory === cat ? colors.primary : colors.cardBackground }]}
-            onPress={() => setSelectedCategory(cat)}
-          >
-            <Text style={[styles.filterText, { color: selectedCategory === cat ? '#fff' : colors.textSecondary }]}>
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <Text style={[styles.filterCount, { color: colors.textLight }]}>{filtered.length} materi</Text>
-      </View>
-
       <FlatList
         data={filtered}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={<ListHeader />}
+        ListFooterComponent={<ListFooter />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="book-outline" size={64} color={colors.textLight} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Tidak ada materi ditemukan</Text>
+            <Ionicons name="search-outline" size={52} color={colors.textLight} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              Tidak ditemukan
+            </Text>
           </View>
         }
       />
@@ -151,29 +306,136 @@ export default function TajweedLessonsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container:   { flex: 1 },
-  searchSection: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-  searchBox:   { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, elevation: 2, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
-  searchIcon:  { marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 0 },
-  filterRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
-  filterBtn:   { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  filterText:  { fontSize: 14, fontWeight: '500' },
-  filterCount: { marginLeft: 'auto', fontSize: 13 },
-  list:        { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
-  card:        { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, overflow: 'hidden', elevation: 2, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
-  cardLeft:    { width: 80, alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8, borderLeftWidth: 4 },
-  iconCircle:  { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  arabic:      { fontSize: 16, lineHeight: 22 },
-  cardBody:    { flex: 1, padding: 14, paddingLeft: 12 },
-  cardHeader:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6, gap: 8 },
-  title:       { fontSize: 15, fontWeight: '600', flex: 1 },
-  badge:       { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
-  badgeText:   { fontSize: 11, fontWeight: '600' },
-  description: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
-  exampleRow:  { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-  exampleLabel:{ fontSize: 12 },
-  exampleChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
-  exampleText: { fontSize: 14, lineHeight: 20 },
-  empty:       { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60, gap: 12 },
-  emptyText:   { fontSize: 16, fontWeight: '500' },
+  listContent: { paddingHorizontal: 16, paddingBottom: 32 },
+
+  // Hero
+  hero: {
+    alignItems:    'center',
+    paddingTop:    24,
+    paddingBottom: 20,
+  },
+  heroIcon: {
+    width:          72,
+    height:         72,
+    borderRadius:   36,
+    justifyContent: 'center',
+    alignItems:     'center',
+    marginBottom:   14,
+  },
+  heroTitle:    { fontSize: 22, fontWeight: '700', marginBottom: 8 },
+  heroSubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 21 },
+
+  // Search
+  searchBox: {
+    flexDirection:    'row',
+    alignItems:       'center',
+    borderRadius:     12,
+    paddingHorizontal: 14,
+    paddingVertical:  11,
+    borderWidth:      1,
+    marginBottom:     12,
+    elevation:        1,
+  },
+  searchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
+
+  // Filter chips
+  filterRow: { paddingBottom: 14, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical:   7,
+    borderRadius:      20,
+    borderWidth:       1.5,
+  },
+  filterText:  { fontSize: 13 },
+
+  // Card
+  card: {
+    flexDirection:  'row',
+    marginBottom:   12,
+    borderRadius:   14,
+    borderWidth:    1,
+    overflow:       'hidden',
+    elevation:      2,
+    shadowColor:    '#000',
+    shadowOffset:   { width: 0, height: 1 },
+    shadowOpacity:  0.07,
+    shadowRadius:   4,
+  },
+  accentBar:   { width: 4 },
+  cardInner:   { flex: 1, padding: 14 },
+
+  // Card top row
+  cardTop: {
+    flexDirection:  'row',
+    alignItems:     'flex-start',
+    marginBottom:   10,
+    gap:            10,
+  },
+  iconCircle: {
+    width:          36,
+    height:         36,
+    borderRadius:   18,
+    justifyContent: 'center',
+    alignItems:     'center',
+  },
+  arabicBlock: { flex: 1 },
+  arabicText:  { fontSize: 22, textAlign: 'right', lineHeight: 30 },
+  transliteration: { fontSize: 11, textAlign: 'right', marginTop: 2, fontStyle: 'italic' },
+  categoryBadge: {
+    alignSelf:         'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical:   3,
+    borderRadius:      8,
+    borderWidth:       1,
+  },
+  categoryText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+
+  // Card body
+  cardTitle:   { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  cardDesc:    { fontSize: 13, lineHeight: 19 },
+
+  // Example chips
+  exampleRow: {
+    flexDirection: 'row',
+    flexWrap:      'wrap',
+    gap:           6,
+    marginTop:     10,
+  },
+  exampleChip: {
+    paddingHorizontal: 10,
+    paddingVertical:   4,
+    borderRadius:      8,
+    borderWidth:       1,
+  },
+  exampleText: { fontSize: 16, lineHeight: 22 },
+
+  // Pro Tip
+  proTipCard: {
+    marginTop:    8,
+    borderRadius: 14,
+    padding:      18,
+    borderWidth:  1,
+    overflow:     'hidden',
+  },
+  proTipHeader: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    gap:            10,
+    marginBottom:   10,
+  },
+  proTipBadge: {
+    paddingHorizontal: 8,
+    paddingVertical:   3,
+    borderRadius:      6,
+  },
+  proTipBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  proTipTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  proTipDesc:  { color: 'rgba(255,255,255,0.75)', fontSize: 13, lineHeight: 20, marginBottom: 12 },
+  proTipList:  { gap: 8 },
+  proTipItem:  { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  proTipItemText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 18, flex: 1 },
+
+  // Empty
+  empty:     { paddingTop: 48, alignItems: 'center' },
+  emptyText: { fontSize: 15, marginTop: 12 },
 });
