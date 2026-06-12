@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { QuranAPI, Chapter } from '../services/quranAPI';
 import { useTheme } from '../contexts/ThemeContext';
+import { useReadingProgress } from '../contexts/ReadingProgressContext';
 import { SurahStackParamList } from '../types/navigation';
 import {
   SkeletonBox, LastReadSkeleton, SurahItemSkeleton, SectionHeaderSkeleton, SearchBarSkeleton,
@@ -62,6 +63,7 @@ const HexBadge: React.FC<{ number: number }> = ({ number }) => {
 
 export default function SurahListScreen({ navigation }: Props) {
   const { colors, isDarkMode } = useTheme();
+  const { progressPercent, isCompleted } = useReadingProgress();
 
   const [chapters,          setChapters]         = useState<Chapter[]>([]);
   const [filteredChapters,  setFilteredChapters] = useState<Chapter[]>([]);
@@ -119,12 +121,33 @@ export default function SurahListScreen({ navigation }: Props) {
       <HexBadge number={item.id} />
 
       <View style={styles.info}>
-        <Text style={[styles.nameLatin, { color: colors.text }]}>
-          {item.name_simple}
-        </Text>
+        <View style={styles.nameLine}>
+          <Text style={[styles.nameLatin, { color: colors.text }]}>
+            {item.name_simple}
+          </Text>
+          {isCompleted(item.id as number) && (
+            <View style={[styles.doneBadge, { backgroundColor: '#22c55e' + '20', borderColor: '#22c55e' + '50' }]}>
+              <Ionicons name="checkmark" size={10} color="#22c55e" />
+              <Text style={[styles.doneText, { color: '#22c55e' }]}>Selesai</Text>
+            </View>
+          )}
+        </View>
         <Text style={[styles.metaRow, { color: colors.textSecondary }]}>
           {item.translated_name.name.toUpperCase()} · {item.verses_count} AYAT
         </Text>
+        {/* Mini progress bar */}
+        {(() => {
+          const pct = progressPercent(item.id as number);
+          if (pct <= 0 || isCompleted(item.id as number)) return null;
+          return (
+            <View style={[styles.miniTrack, { backgroundColor: colors.border }]}>
+              <View style={[styles.miniFill, {
+                width: `${pct}%`,
+                backgroundColor: colors.primary,
+              }]} />
+            </View>
+          );
+        })()}
       </View>
 
       <Text style={[styles.nameArabic, { color: colors.arabicText }]}>
@@ -317,8 +340,13 @@ const styles = StyleSheet.create({
     shadowRadius:      4,
   },
   info:       { flex: 1, paddingHorizontal: 14 },
-  nameLatin:  { fontSize: 16, fontWeight: '600', marginBottom: 3 },
-  metaRow:    { fontSize: 12, letterSpacing: 0.2 },
+  nameLatin:  { fontSize: 16, fontWeight: '600' },
+  metaRow:    { fontSize: 12, letterSpacing: 0.2, marginTop: 1 },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  doneBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
+  doneText: { fontSize: 9, fontWeight: '700' },
+  miniTrack: { height: 3, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  miniFill: { height: 3, borderRadius: 2 },
   nameArabic: {
     fontSize:   22,
     fontFamily: 'Amiri-Bold',

@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, ColorScheme, GradientScheme } from '../contexts/ThemeContext';
 import { useFonts } from '../contexts/FontContext';
+import { useReadingProgress } from '../contexts/ReadingProgressContext';
 import { Chapter } from '../services/quranAPI';
 import TajweedLegend from './TajweedLegend';
+import ReadingProgressBar from './ReadingProgressBar';
 
 interface Theme {
   colors:     ColorScheme;
@@ -28,10 +30,12 @@ interface Props {
 export default function SurahHeader({
   surah, fontSize, setFontSize,
   showTranslation, setShowTranslation,
-  theme, minFontSize = 12, maxFontSize = 32,
+  theme, minFontSize = 20, maxFontSize = 40,
 }: Props) {
-  const contextTheme = useTheme();
+  const contextTheme      = useTheme();
   const { getArabicTextStyle } = useFonts();
+  const { progressPercent, getProgress } = useReadingProgress();
+
   const { colors, isDarkMode } = theme ?? contextTheme;
 
   const [fadeAnim]   = useState(new Animated.Value(1));
@@ -48,12 +52,16 @@ export default function SurahHeader({
   const increaseFontSize  = () => { flash(); setFontSize(Math.min(maxFontSize, fontSize + 2)); };
   const toggleTranslation = () => { flash(); setShowTranslation(!showTranslation); };
 
-  const arabicName     = surah.name_arabic ?? 'سورة';
-  const latinName      = surah.name_simple ?? 'Unknown';
-  const translationName = surah.translated_name?.name ?? '';
-  const revelationType  = surah.revelation_place ?? 'Unknown';
+  const surahId         = surah.id as number;
+  const arabicName      = surah.name_arabic ?? 'سورة';
+  const latinName       = surah.name_simple ?? 'Unknown';
+  const translatedName  = surah.translated_name?.name ?? '';
+  const revelationType  = surah.revelation_place ?? '';
   const versesCount     = surah.verses_count ?? 0;
-  const surahId         = surah.id ?? 0;
+
+  // ─ Progress data ─────────────────────────────────────────────────────────
+  const percent  = progressPercent(surahId);
+  const progress = getProgress(surahId);
 
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
@@ -77,23 +85,34 @@ export default function SurahHeader({
 
         {/* Meta info */}
         <Text style={styles.metaInfo}>
-          {translationName} · {versesCount} Ayat · {revelationType}
+          {translatedName} · {versesCount} Ayat · {revelationType}
         </Text>
 
         {/* Play Murotal button */}
         <TouchableOpacity
-          style={[styles.murattalBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+          style={styles.murattalBtn}
           onPress={() => {}}
           activeOpacity={0.8}
         >
           <Ionicons name="play-circle-outline" size={18} color="#fff" />
           <Text style={styles.murattalText}>Putar Murotal</Text>
         </TouchableOpacity>
+
+        {/* ── Reading progress bar ── */}
+        {percent > 0 && progress && (
+          <ReadingProgressBar
+            percent={percent}
+            totalVerses={versesCount}
+            highestVerse={progress.highest_verse_number}
+            colors={colors}
+            isDarkMode={isDarkMode}
+          />
+        )}
       </LinearGradient>
 
       {/* ── Controls bar ──────────────────────────────────────────────────── */}
       <View style={[styles.controlsBar, {
-        backgroundColor: colors.cardBackground,
+        backgroundColor:   colors.cardBackground,
         borderBottomColor: colors.border,
       }]}>
         {/* Font size controls */}
@@ -103,7 +122,8 @@ export default function SurahHeader({
             style={[styles.iconBtn, { backgroundColor: colors.background }]}
             disabled={fontSize <= minFontSize}
           >
-            <Ionicons name="remove" size={18} color={fontSize <= minFontSize ? colors.textLight : colors.textSecondary} />
+            <Ionicons name="remove" size={16}
+              color={fontSize <= minFontSize ? colors.textLight : colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.fontSizeLabel, { color: colors.textSecondary }]}>{fontSize}px</Text>
           <TouchableOpacity
@@ -111,11 +131,11 @@ export default function SurahHeader({
             style={[styles.iconBtn, { backgroundColor: colors.background }]}
             disabled={fontSize >= maxFontSize}
           >
-            <Ionicons name="add" size={18} color={fontSize >= maxFontSize ? colors.textLight : colors.textSecondary} />
+            <Ionicons name="add" size={16}
+              color={fontSize >= maxFontSize ? colors.textLight : colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Translation toggle */}
@@ -126,7 +146,7 @@ export default function SurahHeader({
         >
           <Ionicons
             name={showTranslation ? 'text' : 'text-outline'}
-            size={16}
+            size={15}
             color={showTranslation ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.toggleLabel, {
@@ -136,7 +156,6 @@ export default function SurahHeader({
           </Text>
         </TouchableOpacity>
 
-        {/* Divider */}
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Tajwid legend */}
@@ -145,24 +164,27 @@ export default function SurahHeader({
           onPress={() => setShowLegend(prev => !prev)}
           activeOpacity={0.75}
         >
-          <Ionicons name="color-palette-outline" size={16} color={colors.textSecondary} />
-          <Text style={[styles.toggleLabel, { color: colors.textSecondary }]}>Tajwid</Text>
+          <Ionicons name="color-palette-outline" size={15} color={
+            showLegend ? colors.primary : colors.textSecondary
+          } />
+          <Text style={[styles.toggleLabel, {
+            color: showLegend ? colors.primary : colors.textSecondary,
+          }]}>
+            Tajwid
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Tajwid Legend (collapsible) */}
-      {showLegend && (
-        <TajweedLegend />
-      )}
+      {showLegend && <TajweedLegend />}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Gradient header
   gradientHeader: {
     paddingTop:    32,
-    paddingBottom: 24,
+    paddingBottom: 0,
     paddingHorizontal: 20,
     alignItems:    'center',
   },
@@ -174,20 +196,20 @@ const styles = StyleSheet.create({
     marginBottom:  10,
   },
   arabicName: {
-    color:      '#fff',
-    textAlign:  'center',
+    color:        '#fff',
+    textAlign:    'center',
     marginBottom: 6,
   },
   latinName: {
     color:        '#fff',
     fontSize:     26,
     fontWeight:   '700',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   metaInfo: {
     color:        'rgba(255,255,255,0.75)',
     fontSize:     13,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   murattalBtn: {
     flexDirection:     'row',
@@ -196,28 +218,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical:   8,
     borderRadius:      20,
+    backgroundColor:   'rgba(255,255,255,0.2)',
+    marginBottom:      16,
   },
-  murattalText: {
-    color:      '#fff',
-    fontSize:   13,
-    fontWeight: '600',
-  },
+  murattalText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
-  // Controls bar
   controlsBar: {
-    flexDirection:  'row',
-    alignItems:     'center',
+    flexDirection:     'row',
+    alignItems:        'center',
     paddingHorizontal: 16,
     paddingVertical:   10,
     borderBottomWidth: 1,
-    gap:            4,
+    gap:               4,
   },
-  fontSizeGroup: {
-    flexDirection: 'row',
-    alignItems:    'center',
-    gap:           6,
-    flex:          1,
-  },
+  fontSizeGroup: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   iconBtn: {
     width:          30,
     height:         30,
@@ -226,17 +240,7 @@ const styles = StyleSheet.create({
     alignItems:     'center',
   },
   fontSizeLabel: { fontSize: 12, fontWeight: '600', minWidth: 30, textAlign: 'center' },
-  divider: {
-    width:  1,
-    height: 20,
-    marginHorizontal: 8,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems:    'center',
-    gap:           5,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-  },
-  toggleLabel: { fontSize: 12, fontWeight: '500' },
+  divider:       { width: 1, height: 20, marginHorizontal: 8 },
+  toggleRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4, paddingHorizontal: 4 },
+  toggleLabel:   { fontSize: 12, fontWeight: '500' },
 });

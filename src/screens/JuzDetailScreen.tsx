@@ -13,6 +13,8 @@ import VerseItem from '../components/VerseItem';
 import { useTheme } from '../contexts/ThemeContext';
 import { useFonts } from '../contexts/FontContext';
 import { JuzStackParamList } from '../types/navigation';
+import { useBookmarks }       from '../contexts/BookmarkContext';
+import { useReadingProgress } from '../contexts/ReadingProgressContext';
 import {
   VerseItemSkeleton, BismillahSkeleton, SurahHeaderSkeleton,
 } from '../components/SkeletonLoader';
@@ -75,6 +77,8 @@ const PER_PAGE = 50;
 export default function JuzDetailScreen({ navigation, route }: Props) {
   const { juzNumber, arabicName, startSurah, endSurah } = route.params;
   const { colors, isDarkMode, gradients } = useTheme();
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const { updateProgress }                            = useReadingProgress();
   const { getArabicTextStyle } = useFonts();
 
   // ─ state ─────────────────────────────────────────────────────────────────
@@ -128,6 +132,30 @@ export default function JuzDetailScreen({ navigation, route }: Props) {
       setChapterMap(prev => ({ ...prev, ...additions }));
     }
   }, [chapterMap]);
+
+  // ─ Bookmark toggle ────────────────────────────────────────────────────────
+  const handleToggleBookmark = useCallback((verse: Verse) => {
+    const chapterNumber = parseInt(verse.verse_key.split(':')[0], 10);
+    const chapter = chapterMap[chapterNumber];
+    const vk = verse.verse_key;
+    if (isBookmarked(vk)) {
+      removeBookmark(vk);
+    } else {
+      addBookmark({
+        verse_key:              vk,
+        surah_id:               chapterNumber,
+        surah_name:             chapter?.name_simple ?? `Surah ${chapterNumber}`,
+        surah_name_arabic:      chapter?.name_arabic ?? '',
+        surah_translated_name:  chapter?.translated_name?.name ?? '',
+        surah_verses_count:     chapter?.verses_count ?? 0,
+        surah_revelation_place: chapter?.revelation_place ?? '',
+        verse_number:           verse.verse_number,
+        arabic_text:            verse.text_uthmani ?? '',
+        translation_text:       '',
+        saved_at:               Date.now(),
+      });
+    }
+  }, [chapterMap, isBookmarked, addBookmark, removeBookmark]);
 
   // ─ Load data ──────────────────────────────────────────────────────────────
   const loadPage = useCallback(async (targetPage: number, isLoadMore = false) => {
@@ -385,6 +413,8 @@ export default function JuzDetailScreen({ navigation, route }: Props) {
         fontSize={fontSize}
         showTranslation={showTranslation}
         chapterNumber={chapterNumber}
+        isBookmarked={isBookmarked(verse.verse_key)}
+        onToggleBookmark={handleToggleBookmark}
         showAudio
         theme={{ colors, isDarkMode, gradients }}
         onAudioPlaybackStart={() => {}}

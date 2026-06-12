@@ -5,7 +5,7 @@ import { Chapter } from '../services/quranAPI';
 
 export type SurahStackParamList = {
   SurahList:      undefined;
-  SurahDetail:    { surah: Chapter };
+  SurahDetail:    { surah: Chapter; scrollToVerse?: number };
   TajweedLessons: undefined;
   TajweedDetail:  { lessonId?: string; title?: string };
 };
