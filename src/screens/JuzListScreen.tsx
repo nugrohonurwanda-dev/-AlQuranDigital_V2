@@ -1,12 +1,13 @@
 // screens/JuzListScreen.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ListRenderItemInfo,
+  View, Text, FlatList, StyleSheet,
+  ListRenderItemInfo, RefreshControl,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { JuzStackParamList } from '../types/navigation';
+import PressableCard from '../components/PressableCard';
 
 type Props = { navigation: StackNavigationProp<JuzStackParamList, 'JuzList'> };
 
@@ -18,7 +19,6 @@ interface JuzInfo {
   versesCount: number;
 }
 
-// Hardcoded: data 30 Juz stabil, tidak perlu network request di halaman list
 const JUZ_DATA: JuzInfo[] = [
   { id: 1,  startSurah: 'Al-Fatihah 1:1',    endSurah: 'Al-Baqarah 2:141',   arabicName: 'الم',                  versesCount: 148 },
   { id: 2,  startSurah: 'Al-Baqarah 2:142',  endSurah: 'Al-Baqarah 2:252',   arabicName: 'سَيَقُولُ',            versesCount: 111 },
@@ -54,48 +54,38 @@ const JUZ_DATA: JuzInfo[] = [
 
 export default function JuzListScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   const renderItem = ({ item }: ListRenderItemInfo<JuzInfo>) => (
-    <TouchableOpacity
-      style={[styles.item, {
-        backgroundColor: colors.cardBackground,
-        borderColor:     colors.border,
-      }]}
+    <PressableCard
+      style={[styles.item, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
       onPress={() => navigation.navigate('JuzDetail', {
-        juzNumber:  item.id,
-        arabicName: item.arabicName,
-        startSurah: item.startSurah,
-        endSurah:   item.endSurah,
+        juzNumber: item.id, arabicName: item.arabicName,
+        startSurah: item.startSurah, endSurah: item.endSurah,
       })}
-      activeOpacity={0.7}
     >
-      {/* Badge */}
-      <View style={[styles.badge, {
-        backgroundColor: colors.primary + '18',
-        borderColor:     colors.primary + '40',
-      }]}>
+      <View style={[styles.badge, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' }]}>
         <Text style={[styles.badgeNum, { color: colors.primary }]}>{item.id}</Text>
       </View>
-
-      {/* Info */}
       <View style={styles.info}>
         <Text style={[styles.juzTitle, { color: colors.text }]}>Juz {item.id}</Text>
         <Text style={[styles.range, { color: colors.textSecondary }]} numberOfLines={1}>
           {item.startSurah} — {item.endSurah}
         </Text>
-        <Text style={[styles.count, { color: colors.textLight }]}>
-          {item.versesCount} ayat
-        </Text>
+        <Text style={[styles.count, { color: colors.textLight }]}>{item.versesCount} ayat</Text>
       </View>
-
-      {/* Arabic name */}
       <View style={styles.rightCol}>
         <Text style={[styles.arabicName, { color: colors.primary, fontFamily: 'Amiri-Bold' }]}>
           {item.arabicName}
         </Text>
         <Text style={[styles.arabicLabel, { color: colors.textLight }]}>Pembuka</Text>
       </View>
-    </TouchableOpacity>
+    </PressableCard>
   );
 
   return (
@@ -106,6 +96,14 @@ export default function JuzListScreen({ navigation }: Props) {
         keyExtractor={item => item.id.toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       />
     </View>
   );
@@ -115,28 +113,15 @@ const styles = StyleSheet.create({
   container:   { flex: 1 },
   listContent: { paddingVertical: 12, paddingHorizontal: 16 },
   item: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    paddingVertical:   14,
-    paddingHorizontal: 16,
-    marginBottom:      10,
-    borderRadius:      14,
-    borderWidth:       1,
-    elevation:         2,
-    shadowColor:       '#000',
-    shadowOffset:      { width: 0, height: 1 },
-    shadowOpacity:     0.06,
-    shadowRadius:      4,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 16,
+    marginBottom: 10, borderRadius: 14, borderWidth: 1,
+    elevation: 2, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4,
   },
   badge: {
-    width:          44,
-    height:         44,
-    borderRadius:   22,
-    borderWidth:    1.5,
-    justifyContent: 'center',
-    alignItems:     'center',
-    marginRight:    14,
-    flexShrink:     0,
+    width: 44, height: 44, borderRadius: 22, borderWidth: 1.5,
+    justifyContent: 'center', alignItems: 'center', marginRight: 14, flexShrink: 0,
   },
   badgeNum:    { fontSize: 15, fontWeight: '700' },
   info:        { flex: 1, paddingRight: 8 },

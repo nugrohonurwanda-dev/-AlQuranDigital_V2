@@ -23,6 +23,7 @@ import { SurahStackParamList }   from '../types/navigation';
 import {
   VerseItemSkeleton, BismillahSkeleton,
 } from '../components/SkeletonLoader';
+import ScrollToTopFAB from '../components/ScrollToTopFAB';
 
 type Props = {
   navigation: StackNavigationProp<SurahStackParamList, 'SurahDetail'>;
@@ -48,6 +49,7 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
 
   // "Continue Reading" banner
   const [continueVerse, setContinueVerse] = useState(0);
+  const [showFAB,       setShowFAB]       = useState(false);
 
   // Refs
   const flatListRef     = useRef<FlatList>(null);
@@ -74,6 +76,11 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
       }
     },
   ).current;
+
+  // ─ FAB scroll tracking ────────────────────────────────────────────────────
+  const onScroll = useCallback(({ nativeEvent }: any) => {
+    setShowFAB(nativeEvent.contentOffset.y > 300);
+  }, []);
 
   // ─ Load data ──────────────────────────────────────────────────────────────
   const loadContent = useCallback(async (page = 1, isLoadMore = false) => {
@@ -345,6 +352,8 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
         initialNumToRender={10}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
+        onScroll={onScroll}
+        scrollEventThrottle={150}
         keyboardShouldPersistTaps="handled"
         onScrollToIndexFailed={({ averageItemLength, index }) => {
           flatListRef.current?.scrollToOffset({
@@ -354,6 +363,14 @@ export default function SurahDetailScreen({ route, navigation }: Props) {
         }}
       />
       <CompactMusicPlayer navigation={navigation} chapterData={chapterDataForPlayer} />
+      <ScrollToTopFAB
+        visible={showFAB}
+        onPress={() => {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          setShowFAB(false);
+        }}
+        bottomExtra={80}
+      />
     </View>
   );
 }

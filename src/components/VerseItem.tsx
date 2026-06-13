@@ -12,6 +12,7 @@ import { useFonts } from '../contexts/FontContext';
 import { useTheme, ColorScheme, GradientScheme } from '../contexts/ThemeContext';
 import { Verse, Translation } from '../services/quranAPI';
 import { copyToClipboard } from '../utils/clipboard';
+import { haptic } from '../utils/haptics';
 
 interface Theme {
   colors:     ColorScheme;
@@ -98,6 +99,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
   }, [fullText, verseRef, onDismiss]);
 
   const handleBookmark = useCallback(() => {
+    haptic('medium');
     onToggleBookmark?.(verse);
     onDismiss();
   }, [verse, onToggleBookmark, onDismiss]);
@@ -280,6 +282,7 @@ export default function VerseItem({
 
   // ── Tap handler ─────────────────────────────────────────────────────────
   const handlePress = () => {
+    haptic('light');
     const newExpanded = !expanded;
     setExpanded(newExpanded);
     Animated.timing(highlightAnim, {
